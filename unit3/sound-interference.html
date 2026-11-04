@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>소리의 간섭 · 물리 시뮬레이터</title>
+<meta name="description" content="두 스피커의 소리가 겹쳐 커지고 작아지는 곳이 생기는 모습과, 반대 위상의 소리로 소음을 지우는 원리를 보고 듣는 시뮬레이션" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/theme.css" />
+<link rel="stylesheet" href="sound-interference.css" />
+</head>
+<body data-page="sound-interference">
+
+<div class="page">
+
+  <header class="topbar">
+    <div class="brand">
+      <div>
+        <span class="eyebrow"><a href="index.html">← 탄성파와 소리</a> · Interference</span>
+        <h1>소리의 간섭</h1>
+      </div>
+    </div>
+
+    <nav class="tabs" id="tabs" aria-label="활동 단계">
+      <button class="tab is-active" data-tab="1" type="button"><b>1</b>간섭무늬</button>
+      <button class="tab" data-tab="2" type="button"><b>2</b>걸으며 듣기</button>
+      <button class="tab" data-tab="3" type="button"><b>3</b>소음 제거</button>
+    </nav>
+
+    <div class="topbar-actions">
+      <div class="quick-actions">
+        <button class="btn btn-ghost" id="pauseBtn" type="button">일시정지</button>
+        <button class="btn btn-ghost" id="resetBtn" type="button">초기화</button>
+      </div>
+      <button class="btn btn-ghost" id="settingsToggle" type="button">⚙ 설정</button>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <section class="stage card" id="stage">
+      <canvas id="simCanvas"></canvas>
+      <div class="badge stage-tag" id="statusTag"></div>
+      <div class="stage-toast hidden" id="toast"></div>
+      <div class="stage-hint" id="stageHint"></div>
+    </section>
+
+    <div class="dock">
+
+      <section class="obs-card card" data-card="0">
+        <div class="obs-head">
+          <span class="obs-name" data-role="name">–</span>
+          <span class="obs-tag" data-role="tag"></span>
+          <button class="speaker hidden" data-role="spk" type="button" aria-pressed="false" aria-label="소리 켜기">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5H4z"/><path class="wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>
+          </button>
+        </div>
+        <div class="obs-main">
+          <div class="obs-f" data-role="fbox"><i data-role="sym"></i><b data-role="val">–</b><span data-role="unit"></span></div>
+          <div class="obs-sub">
+            <div><span data-role="k1"></span><b data-role="v1">–</b></div>
+            <div><span data-role="k2"></span><b data-role="v2">–</b></div>
+          </div>
+        </div>
+        <canvas class="strip" data-role="strip"></canvas>
+        <div class="strip-legend" data-role="legend"></div>
+        <div class="obs-formula" data-role="f1"></div>
+      </section>
+
+      <section class="ctrl card">
+        <div class="ctrl-pane" data-pane="1">
+          <div class="ctrl-row">
+            <div class="seg" id="phaseSeg" role="group" aria-label="스피커 B의 위상">
+              <button type="button" data-flip="0" class="is-active">B 같은 위상</button>
+              <button type="button" data-flip="1">B 반대 위상</button>
+            </div>
+          </div>
+          <div class="ctrl-row">
+            <div class="seg" id="viewSeg" role="group" aria-label="무늬 보기">
+              <button type="button" data-view="waves" class="is-active">마루·골</button>
+              <button type="button" data-view="map">세기 지도</button>
+            </div>
+          </div>
+          <div class="param-row">
+            <label for="dNum1">간격</label>
+            <input type="range" class="d-input" min="1" max="4" step="0.5" aria-label="스피커 간격" />
+            <span class="num-wrap"><input type="number" class="num d-num" id="dNum1" min="1" max="4" step="0.5" /><i>m</i></span>
+          </div>
+          <div class="param-row">
+            <label for="fNum1">진동수</label>
+            <input type="range" class="f-input" min="170" max="680" step="10" aria-label="진동수" />
+            <span class="num-wrap"><input type="number" class="num f-num" id="fNum1" min="170" max="680" step="10" /><i>Hz</i></span>
+          </div>
+        </div>
+
+        <div class="ctrl-pane hidden" data-pane="2">
+          <div class="ctrl-row">
+            <div class="seg" id="countSeg" role="group" aria-label="스피커 수">
+              <button type="button" data-count="1">스피커 1개</button>
+              <button type="button" data-count="2" class="is-active">스피커 2개</button>
+            </div>
+          </div>
+          <div class="ctrl-row">
+            <div class="seg" id="lineSeg" role="group" aria-label="걷는 줄">
+              <button type="button" data-line="near">가까운 줄</button>
+              <button type="button" data-line="far" class="is-active">먼 줄</button>
+            </div>
+            <button class="btn btn-primary" id="walkBtn" type="button">걷기</button>
+          </div>
+          <div class="param-row">
+            <label for="dNum2">간격</label>
+            <input type="range" class="d-input" min="1" max="4" step="0.5" aria-label="스피커 간격" />
+            <span class="num-wrap"><input type="number" class="num d-num" id="dNum2" min="1" max="4" step="0.5" /><i>m</i></span>
+          </div>
+          <div class="param-row">
+            <label for="fNum2">진동수</label>
+            <input type="range" class="f-input" min="170" max="680" step="10" aria-label="진동수" />
+            <span class="num-wrap"><input type="number" class="num f-num" id="fNum2" min="170" max="680" step="10" /><i>Hz</i></span>
+          </div>
+        </div>
+
+        <div class="ctrl-pane hidden" data-pane="3">
+          <div class="ctrl-row">
+            <button class="btn btn-ghost" id="ancBtn" type="button" aria-pressed="false">소음 제거</button>
+            <button class="btn btn-ghost is-on" id="musicBtn" type="button" aria-pressed="true">음악</button>
+          </div>
+          <div class="param-row">
+            <label for="thetaNum">위상 차</label>
+            <input type="range" id="thetaInput" min="0" max="360" step="15" aria-label="이어폰 소리의 위상 차" />
+            <span class="num-wrap"><input type="number" class="num" id="thetaNum" min="0" max="360" step="15" /><i>°</i></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="obs-card card" data-card="1">
+        <div class="obs-head">
+          <span class="obs-name" data-role="name">–</span>
+          <span class="obs-tag" data-role="tag"></span>
+          <button class="speaker hidden" data-role="spk" type="button" aria-pressed="false" aria-label="소리 켜기">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5H4z"/><path class="wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>
+          </button>
+        </div>
+        <div class="obs-main">
+          <div class="obs-f" data-role="fbox"><i data-role="sym"></i><b data-role="val">–</b><span data-role="unit"></span></div>
+          <div class="obs-sub">
+            <div><span data-role="k1"></span><b data-role="v1">–</b></div>
+            <div><span data-role="k2"></span><b data-role="v2">–</b></div>
+          </div>
+        </div>
+        <canvas class="strip" data-role="strip"></canvas>
+        <div class="strip-legend" data-role="legend"></div>
+        <div class="obs-formula" data-role="f1"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <div class="settings-overlay hidden" id="settingsOverlay">
+    <div class="settings-backdrop" id="settingsBackdrop"></div>
+    <aside class="card settings-panel">
+      <div class="settings-panel-header">
+        <h2>설정</h2>
+        <button class="settings-close" id="settingsClose" type="button" aria-label="설정 닫기">✕</button>
+      </div>
+
+      <div class="control-group">
+        <div class="control-row"><label for="periodSelect">화면 속도</label></div>
+        <select id="periodSelect">
+          <option value="3">느리게 (한 번 진동에 3초)</option>
+          <option value="1.5" selected>보통 (한 번 진동에 1.5초)</option>
+          <option value="0.75">빠르게 (한 번 진동에 0.75초)</option>
+        </select>
+      </div>
+
+      <p class="control-hint">음속은 340 m/s다. 화면만 느리게 보여 주고, 소리는 실제 진동수로 낸다.</p>
+    </aside>
+  </div>
+
+</div>
+
+<script src="../shared/sim-utils.js"></script>
+<script src="sound-interference.js"></script>
+</body>
+</html>

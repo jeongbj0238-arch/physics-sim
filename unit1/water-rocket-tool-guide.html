@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>물로켓 사전 실험 안내 — 발사·촬영과 영상 분석</title>
+<style>
+  :root {
+    --ink:#111; --steel:#555; --muted:#888; --line:#ccc; --line-strong:#666;
+    --accent:#0066cc; --orange:#dd5b00; --green:#0f766e; --fill:#f5f5f5;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; padding:24px; background:#e8e8e8; color:var(--ink);
+    font-family:"Malgun Gothic","맑은 고딕",-apple-system,sans-serif;
+    font-size:10pt; line-height:1.5;
+  }
+  .sheet { background:#fff; max-width:210mm; margin:0 auto 20px; padding:13mm 13mm; }
+
+  h1 { font-size:15pt; margin:0 0 3px; letter-spacing:-0.5px; }
+  .subtitle { color:var(--steel); font-size:9pt; margin:0 0 10px; }
+
+  h2 { font-size:10.5pt; margin:13px 0 6px; padding:4px 9px;
+       background:var(--ink); color:#fff; border-radius:3px; }
+
+  .steps { display:flex; flex-direction:column; gap:6px; }
+  .step { display:flex; gap:9px; border:1px solid var(--line-strong); border-radius:4px; padding:7px 10px; }
+  .step .no {
+    flex:0 0 20px; height:20px; border-radius:50%; background:var(--accent); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:9.5pt; font-weight:700;
+  }
+  .step .body { flex:1; }
+  .step .t { font-weight:700; font-size:10pt; margin-bottom:2px; }
+  .step .d { font-size:9pt; line-height:1.5; }
+  .step .chk { font-size:8.5pt; color:var(--accent); margin-top:3px; }
+  .step .chk b { color:var(--accent); }
+
+  .btn { display:inline-block; background:var(--fill); border:1px solid var(--line);
+         border-radius:3px; padding:0 5px; font-size:8.5pt; }
+
+  .two { display:flex; gap:9px; }
+  .two > div { flex:1; }
+
+  table { width:100%; border-collapse:collapse; margin:5px 0; }
+  th,td { border:1px solid var(--line-strong); padding:4px 7px; font-size:9pt; vertical-align:top; }
+  th { background:var(--fill); font-weight:600; text-align:left; }
+
+  .warn { border:1.5px solid var(--orange); border-radius:4px; padding:7px 10px; font-size:9pt; }
+  .warn .wt { color:var(--orange); font-weight:700; margin-bottom:3px; }
+
+  .good { border:1.5px solid var(--green); border-radius:4px; padding:7px 10px; font-size:9pt; }
+  .good .gt { color:var(--green); font-weight:700; margin-bottom:3px; }
+
+  ul { margin:3px 0; padding-left:16px; }
+  li { margin-bottom:2px; }
+
+  .toolbar { max-width:210mm; margin:0 auto 12px; display:flex; gap:10px; align-items:center; font-size:10pt; }
+  .toolbar button { font-family:inherit; font-size:10pt; padding:7px 14px;
+                    border:1px solid var(--ink); background:#fff; border-radius:4px; cursor:pointer; }
+  .toolbar button:hover { background:var(--ink); color:#fff; }
+  .toolbar .tip { color:#555; font-size:9pt; }
+  .toolbar .back { color:var(--steel); text-decoration:none; font-size:10pt; padding:7px 4px; }
+  .toolbar .back:hover { color:var(--ink); text-decoration:underline; }
+
+  /* 밀도 — 화면·인쇄 모두 같게. 예전에는 A4 한 장에 욱여넣었으나
+     사전 실험(발사·촬영)까지 담게 되어 장수 제한을 풀었다. */
+  body { font-size:9pt; line-height:1.36; }
+
+  /* 활동 구분 머리 — 두 활동이 한 문서에 들어가므로 경계가 분명해야 한다 */
+  .act {
+    display:flex; align-items:center; gap:9px;
+    margin:14px 0 6px; padding:6px 10px;
+    border:1.5px solid var(--ink); border-radius:4px; background:var(--fill);
+  }
+  .act .n {
+    flex:0 0 auto; background:var(--ink); color:#fff; border-radius:3px;
+    padding:2px 8px; font-size:9.5pt; font-weight:700;
+  }
+  .act .tt { font-size:11.5pt; font-weight:700; }
+  .act .sub { font-size:8.5pt; color:var(--steel); margin-left:auto; }
+
+  /* 안전 — 문서에서 가장 강한 강조 */
+  .danger { border:2px solid #c0392b; border-radius:4px; padding:8px 11px; background:#fdf0ee; }
+  .danger .dt { color:#c0392b; font-weight:700; font-size:9.5pt; margin-bottom:3px; }
+  .danger li { margin-bottom:3px; }
+  .danger .first { color:#c0392b; font-weight:700; }
+
+  /* 발사 절차 — 번호 붙은 세로 목록 */
+  ol.proc { margin:4px 0; padding-left:0; list-style:none; counter-reset:p; }
+  ol.proc li {
+    counter-increment:p; position:relative; padding:3px 0 3px 26px; margin-bottom:1px;
+    border-bottom:1px dotted var(--line);
+  }
+  ol.proc li:last-child { border-bottom:0; }
+  ol.proc li::before {
+    content:counter(p); position:absolute; left:0; top:3px;
+    width:17px; height:17px; border-radius:50%; background:var(--accent); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:8.5pt; font-weight:700;
+  }
+
+  /* 적어둘 것 — 활동1과 활동2를 잇는 다리 */
+  .record { border:1.5px solid var(--green); border-radius:4px; padding:8px 11px; }
+  .record .rt { color:var(--green); font-weight:700; font-size:9.5pt; margin-bottom:4px; }
+  .record table { margin:0; }
+  .record td { border:0; border-bottom:1px solid var(--line); padding:3px 4px; }
+  .record td.blank { border-bottom:1px solid var(--ink-strong,#333); width:38%; }
+
+  .phone { border:1px solid var(--line-strong); border-radius:4px; padding:7px 10px; }
+  .phone .pt { font-weight:700; font-size:9.5pt; margin-bottom:3px; }
+
+  h1 { font-size:14pt; }
+  h2 { font-size:10pt; margin:7px 0 3px; padding:3px 8px; }
+  .steps { gap:4px; }
+  .step { padding:5px 9px; gap:8px; }
+  .step .t { font-size:9.5pt; margin-bottom:1px; }
+  .step .d { font-size:8.5pt; line-height:1.36; }
+  .step .chk { font-size:8pt; margin-top:2px; }
+  .step .no { flex:0 0 18px; height:18px; font-size:9pt; }
+  th,td { padding:3px 6px; font-size:8.5pt; }
+  .warn, .good { padding:6px 9px; font-size:8.5pt; }
+  .two { gap:8px; }
+  ul { padding-left:15px; }
+  li { margin-bottom:1px; }
+
+  @media print {
+    body { background:#fff; padding:0; }
+    .toolbar { display:none; }
+    .sheet { max-width:none; margin:0; padding:0; }
+    h2, th, .step .no, .warn, .good, .btn {
+      -webkit-print-color-adjust:exact; print-color-adjust:exact;
+    }
+    h2 { page-break-after:avoid; }
+    .step, .warn, .good, table { page-break-inside:avoid; }
+    /* 활동 2는 새 쪽에서 시작한다 — 운동장에서는 활동 1만, 교실에서는 활동 2만 보게 된다 */
+    .page-break { page-break-before:always; }
+    .act { page-break-after:avoid; }
+    .danger, .record, .phone, ol.proc { page-break-inside:avoid; }
+  }
+  @page { size:A4; margin:12mm; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <!-- 배포본에만 있는 링크. 인쇄할 때는 .toolbar 자체가 숨겨지므로 종이에는 안 나온다. -->
+  <a class="back" href="index.html">&larr; 목록</a>
+  <button onclick="window.print()" type="button">인쇄 / PDF 저장</button>
+  <span class="tip">※ 인쇄 대화상자에서 <b>배경 그래픽</b>을 켜야 색이 나옵니다.</span>
+</div>
+
+<div class="sheet">
+
+  <h1>물로켓 사전 실험 안내</h1>
+  <p class="subtitle">① 물로켓을 쏘고 촬영한다 &nbsp;→&nbsp; ② 그 영상에서 <b>발사속력</b>을 구한다</p>
+
+  <!-- ==================== 활동 1 ==================== -->
+  <div class="act">
+    <span class="n">활동 1</span>
+    <span class="tt">물로켓 발사와 촬영</span>
+    <span class="sub">운동장</span>
+  </div>
+
+  <h2>안전 규칙 &mdash; 먼저 읽으세요</h2>
+  <div class="danger">
+    <div class="dt">⚠ 물로켓은 압축 공기를 쓰는 장치입니다. 아래 셋은 반드시 지키세요.</div>
+    <ul>
+      <li class="first">발사가 안 되어도 <b>절대 다가가지 마세요.</b> 먼저 <b>압력을 뺀 뒤</b>에 접근합니다.</li>
+      <li>가압하는 동안 병의 <b>앞이나 옆에 서지 마세요.</b> 옆으로 터질 수 있습니다.</li>
+      <li><b>탄산음료용 페트병만</b> 씁니다. 생수병은 얇아서 위험하고,
+        <b>흠집이 났거나 찌그러진 병</b>은 쓰지 않습니다.</li>
+    </ul>
+  </div>
+
+  <h2>준비물</h2>
+  <ul>
+    <li><b>1.5 L 탄산음료 페트병</b> &mdash; 눈에 띄는 <b>색 테이프</b>를 감아 둡니다.
+      하늘·흙과 겹치지 않는 색으로 조에서 골라 오세요 (형광 주황·분홍·연두 등).</li>
+    <li><b>기준 물체</b> &mdash; <b>길이를 정확히 아는 것</b>. 아래 항목을 꼭 읽고 준비하세요.</li>
+    <li><b>촬영할 휴대폰</b> &mdash; 슬로모션 설정을 미리 맞춰 옵니다.</li>
+  </ul>
+
+  <h2>발사 절차</h2>
+  <ol class="proc">
+    <li><b>물 채우기</b> &mdash; 1.5 L 병의 <b>30~40 %</b> (약 450~600 mL). 눈금이나 계량컵으로 재고
+      <b>실제로 넣은 양을 적어 둡니다.</b></li>
+    <li><b>병을 발사대에 결합</b>하고 단단히 물렸는지 확인합니다.</li>
+    <li><b>발사각을 30~50°</b> 사이로 맞춥니다. <b>몇 도로 맞췄는지 적어 둡니다.</b></li>
+    <li><b>발펌프로 가압</b> &mdash; 압력계를 보며 <b>3~4 기압</b>까지. <b>실제 압력을 적어 둡니다.</b></li>
+    <li>▶ <b>녹화를 시작합니다.</b> 가압 전에 켜도 되고 후에 켜도 되지만,
+      <b>발사보다 충분히 여유 있게 먼저</b> 켜야 합니다.
+      <span class="btn">연소 순간을 놓치면 발사속력을 구할 수 없습니다</span></li>
+    <li>발사 방향에 <b>사람이 없는지 확인</b>하고, <b>레버</b>를 당겨 발사합니다.</li>
+  </ol>
+
+  <h2>촬영 &mdash; 여기서 결과가 갈립니다</h2>
+  <div class="two">
+    <div class="good">
+      <div class="gt">✔ 이렇게 찍으세요</div>
+      <ul>
+        <li><b>흔들리지 않게 고정.</b> 삼각대가 없으면 난간·의자·바닥에 <b>기대거나 받쳐서</b> 둡니다.
+          <b>손으로 들고 찍지 마세요</b> &mdash; 흔들리면 궤적이 튑니다.</li>
+        <li>카메라는 발사 궤도에 <b>수직</b>으로, 충분히 <b>멀리서</b></li>
+        <li>화면에 <b>지면이 보이게</b> (분석에서 지면 기준선을 긋습니다)</li>
+        <li>로켓이 <b>하늘을 배경으로</b> 지나가면 색을 잡기 쉽습니다</li>
+        <li><b>슬로모션 120 fps</b>로 설정 (다음 항목 참조)</li>
+      </ul>
+    </div>
+    <div class="warn">
+      <div class="wt">✘ 이러면 값이 틀어집니다</div>
+      <ul>
+        <li>기준 물체가 <b>카메라에 더 가까이</b> → 속력이 <b>부풀려짐</b></li>
+        <li>비스듬히 찍으면 → 실제보다 <b>짧게</b> 측정</li>
+        <li>보통 촬영(30 fps)이면 → 연소 구간이 <b>10프레임</b>도 안 되어 발사속력을 못 잡음</li>
+        <li>발사 직전에 녹화를 켜면 → <b>가장 중요한 순간</b>을 놓침</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>기준 물체 &mdash; 이 하나로 모든 값이 정해집니다</h2>
+  <p style="margin:3px 0 5px;">
+    프로그램은 <b>화면 속 길이를 실제 길이로 바꿀 기준</b>이 하나 필요합니다.
+    이것이 틀리면 <b>속력·높이가 전부 같은 비율로 틀어지는데, 화면에는 아무 표시도 나지 않습니다.</b>
+  </p>
+  <ul>
+    <li><b>길이를 정확히 아는 물체</b>를 가져오세요 &mdash; 1 m 자, 길이를 잰 각목·막대 등.</li>
+    <li><b>세워서</b> 둡니다. 아래 끝이 <b>지면에 닿게</b> 하면 지면 기준선까지 함께 잡힙니다.</li>
+    <li>⚠ <b>발사대 바로 옆</b>, 즉 <b>로켓이 지나갈 자리와 카메라로부터 같은 거리</b>에 두세요.
+      더 가까이 두면 속력이 부풀려집니다.</li>
+    <li>⚠ <b>사람을 기준으로 쓰지 마세요.</b> 키가 부정확하고, 서 있는 위치가 로켓 궤도와 다릅니다.</li>
+    <li>화면에서 <b>너무 작게 보이지 않게.</b> 기준선이 화면에서 100픽셀인데 3픽셀 잘못 그으면
+      <b>모든 값이 3 % 틀어집니다.</b></li>
+  </ul>
+
+  <h2>휴대폰 슬로모션 설정</h2>
+  <div class="two">
+    <div class="phone">
+      <div class="pt">📱 아이폰</div>
+      <ul>
+        <li>카메라 앱에서 <b>SLO-MO</b>로 넘깁니다.</li>
+        <li>화면 모서리의 <b>120 / 240</b> 표시를 눌러 <b>120</b>으로 맞춥니다.</li>
+        <li>표시가 없으면 <b>설정 → 카메라 → 슬로모션 녹화 → 1080p/120 fps</b></li>
+      </ul>
+    </div>
+    <div class="phone">
+      <div class="pt">📱 갤럭시</div>
+      <ul>
+        <li>카메라 앱 → <b>더보기</b> → <b>슬로우 모션</b></li>
+        <li>설정에서 <b>몇 fps인지 확인</b>합니다 (기종에 따라 120 또는 240).</li>
+      </ul>
+    </div>
+  </div>
+  <div class="warn" style="margin-top:5px;">
+    <div class="wt">✘ 「초고속 촬영」(슈퍼 슬로우 모션)은 쓰지 마세요</div>
+    아주 짧은 순간만 찍히고, 기종에 따라 <b>없는 프레임을 만들어 채우기</b> 때문에 분석이 틀어집니다.
+    반드시 <b>「슬로우 모션」</b>을 쓰세요.
+    <br>※ 메뉴 이름은 기종·소프트웨어 버전에 따라 다를 수 있습니다. <b>발사 전에 미리 확인해 두세요.</b>
+  </div>
+
+  <h2>촬영을 마치면 &mdash; 반드시 적어 두세요</h2>
+  <div class="record">
+    <div class="rt">✎ 이 값들이 없으면 활동 2에서 분석을 시작할 수 없습니다</div>
+    <table>
+      <tr><td><b>촬영 프레임레이트</b> (설정에서 확인한 값)</td><td class="blank">&nbsp;</td><td style="width:8%;">fps</td></tr>
+      <tr><td><b>기준 물체의 실제 길이</b></td><td class="blank">&nbsp;</td><td>m</td></tr>
+      <tr><td>넣은 물의 양</td><td class="blank">&nbsp;</td><td>mL</td></tr>
+      <tr><td>가압한 압력</td><td class="blank">&nbsp;</td><td>기압</td></tr>
+      <tr><td>발사각</td><td class="blank">&nbsp;</td><td>°</td></tr>
+    </table>
+    <p style="margin:5px 0 0;font-size:8.5pt;">
+      위의 두 값은 <b>분석 프로그램에 직접 입력</b>해야 합니다. 나머지 셋은 활동지의 실험 조건 칸에 적습니다.
+    </p>
+  </div>
+
+  <!-- ==================== 활동 2 ==================== -->
+  <div class="act page-break">
+    <span class="n">활동 2</span>
+    <span class="tt">촬영한 영상 분석하기</span>
+    <span class="sub">발사속력 구하기</span>
+  </div>
+
+  <h2>다섯 단계</h2>
+  <div class="steps">
+
+    <div class="step">
+      <div class="no">1</div>
+      <div class="body">
+        <div class="t">영상 불러오기</div>
+        <div class="d">영상을 <b>끌어다 놓거나</b> <span class="btn">영상 선택</span>. 그다음
+          <b>촬영 프레임레이트</b>에 <b>활동 1에서 적어 둔 값</b>을 넣습니다.
+          프레임 개수와 시간은 파일에서 저절로 읽습니다.</div>
+        <div class="chk">✓ <b>이 값을 넣어야 다음 단계로 넘어갑니다.</b> 기본값이 없으니 반드시 직접 입력하세요
+          &mdash; 틀리면 속력이 통째로 틀어지는데 <b>화면에는 아무 표시도 나지 않습니다.</b></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="no">2</div>
+      <div class="body">
+        <div class="t">기준 길이 · 지면</div>
+        <div class="d"><span class="btn">기준선 긋기</span>를 누르고 기준 물체의 <b>위끝에서 아래끝까지</b>
+          드래그한 뒤 <b>실제 길이(m)</b>를 입력합니다. 지면은 기준선의 아래쪽 끝으로 자동 설정되며,
+          다르면 <span class="btn">직접 지정</span>으로 고칩니다.</div>
+        <div class="chk">✓ <b>여기가 가장 많이 틀리는 곳</b> &mdash; 이 값이 틀리면 속력이 통째로 틀어집니다.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="no">3</div>
+      <div class="body">
+        <div class="t">테이프 색 · 추적 범위</div>
+        <div class="d">발사 직전 프레임으로 간 뒤 <b>테이프 한가운데에서 바깥으로 드래그</b>합니다.
+          시작점의 색을 읽고, 드래그한 길이가 <b>추적 범위</b>가 됩니다.
+          색이 잘못 잡혔으면 아래 <b>색 동그라미</b>에서 골라도 됩니다.
+          각 항목의 <span class="btn">i</span> 를 누르면 설명이 나옵니다.</div>
+        <div class="chk">✓ <span class="btn">검출 결과 겹쳐 보기</span>를 켜고
+          <b>가까울 때와 멀 때를 모두</b> 확인하세요 &mdash; 발사 직후만 맞추면 로켓이 멀어졌을 때 놓칩니다.
+          <b>추적이 중간에 끊기는 가장 흔한 원인입니다.</b><br>
+          ✓ <b>하늘을 배경으로 찍었다면 최소 선명도를 0.15~0.20까지 낮추세요.</b>
+          하늘은 원래 선명도가 낮아서, 낮춰도 하늘을 잘못 잡지 않으면서 <b>멀어져 옅어진 로켓을 살립니다.</b></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="no">4</div>
+      <div class="body">
+        <div class="t">추적하기</div>
+        <div class="d">재생바 아래에서 <b>추적 구간</b>을 발사 앞뒤로 좁힌 뒤
+          <span class="btn">자동 추적 시작</span>. 재생 속도를 <b>2~4 f/s</b>로 두면 추적 과정을
+          눈으로 따라갈 수 있습니다.</div>
+        <div class="chk">✓ 궤적이 튀면 → <b>튄 점을 클릭</b>(그 프레임으로 이동) →
+          <span class="btn">이 점부터 뒤 전부 삭제</span> → <span class="btn">손으로 찍기 시작</span>으로 이어 찍기<br>
+          ✓ <b>손으로 찍은 뒤 <span class="btn">자동 추적 시작</span>을 누르면 처음부터 다시 합니다.</b>
+          멈춘 자리에서 <b>이어서</b> 하려면 <span class="btn">이 프레임부터 다시 추적</span>을 쓰세요.<br>
+          ✓ 손으로 찍을 때는 <b>화면 아래 프레임 번호가 바뀐 것을 보고</b> 다음을 클릭하세요. 연타하지 마세요.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="no">5</div>
+      <div class="body">
+        <div class="t">발사속력 읽기</div>
+        <div class="d">속력–시간 그래프에서 <b>가장 커진 지점</b>이 발사속력입니다(금색 표시).
+          <b>발사속력 · 그때의 높이 · 걸린 시간</b> 세 값을 <span class="btn">복사</span>해
+          활동지에 적습니다.</div>
+        <div class="chk">✓ 그래프가 <b>올라갔다 내려오는 모양</b>이어야 합니다.
+          끝까지 올라가기만 하면 추적을 더 이어야 합니다.<br>
+          ✓ 프로그램이 <b>「이 지점은 궤적에서 벗어나 있습니다」</b>나
+          <b>「이 값만 혼자 솟아 있습니다」</b>라고 하면, 그 값은 <b>믿지 말고</b> 그 부근을 손봐야 합니다.
+          영상에서 <b>흰 테두리</b>가 붙은 점이 바로 그 자리입니다.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <h2>내 값이 맞는지 확인하는 법</h2>
+  <p style="margin:3px 0 5px;">
+    1.5 L 페트병에 물을 30~40% 넣고 3~4기압으로 쏘면 발사속력은 보통
+    <b>20 ~ 34 m/s</b>입니다. 여기서 크게 벗어나면 도구가 알려 줍니다.
+  </p>
+  <table>
+    <tr><th style="width:24%;">나온 값</th><th>할 일</th></tr>
+    <tr><td><b>20 ~ 34 m/s</b></td><td>예상 범위 안입니다. 그대로 진행하세요.</td></tr>
+    <tr><td><b>너무 크다</b><br>(34 m/s 이상)</td>
+        <td>대개 <b>2단계 기준선</b>이 원인입니다. 기준 길이를 <b>실제보다 크게</b> 잡으면
+            거리가 부풀려져 속력도 같이 커집니다. 기준 물체가 로켓 궤도와
+            <b>같은 거리</b>에 있었는지 확인하고 다시 그으세요.<br>
+            그다음 <b>속도 그래프에 혼자 뾰족하게 솟은 점</b>이 없는지 보세요.
+            자동 추적이 끊긴 자리와 손으로 찍기 시작한 자리의 <b>경계</b>에서 잘 생깁니다.</td></tr>
+    <tr><td><b>너무 작다</b><br>(12 m/s 이하)</td>
+        <td><b>물이 다 빠지는 순간</b>이 추적 구간 안에 들어 있는지 확인하세요.
+            그 부근이 비어 있으면 가장 빠른 순간을 놓칩니다.
+            기준 길이를 너무 짧게 잡았을 수도 있습니다.</td></tr>
+  </table>
+
+  <h2>잘 안 될 때</h2>
+  <table>
+    <tr><th style="width:28%;">증상</th><th>해결</th></tr>
+    <tr><td>테이프가 거의 안 잡힘</td>
+        <td><b>최소 선명도를 먼저 낮춘다</b> (0.35 → 0.2 → 0.12). 그래도 안 되면 허용 오차를 키운다.
+            어두운 영상은 대개 선명도가 원인.</td></tr>
+    <tr><td>배경까지 잡힘</td>
+        <td>최소 선명도를 <b>올리고</b> 허용 오차를 줄인다. 추적 범위도 줄인다.</td></tr>
+    <tr><td>로켓이 범위를 벗어남</td>
+        <td>3단계 <b>범위 반지름</b>을 키운다 (권장값이 화면에 안내됨).</td></tr>
+    <tr><td>도무지 자동이 안 됨</td>
+        <td><b>손으로 찍기</b>로 갑니다. 클릭하면 다음 프레임으로 자동으로 넘어가므로 연소 구간
+            70~80프레임을 클릭만으로 따라갈 수 있고, <b>정확도는 자동과 같습니다.</b></td></tr>
+  </table>
+
+  <p style="margin-top:6px;font-size:8pt;color:#666;">
+    ※ 영상은 <b>이 브라우저 안에서만</b> 처리되며 어디로도 전송되지 않습니다. &nbsp;·&nbsp;
+    단축키 &mdash; <b>← →</b> 한 프레임, <b>Shift+← →</b> 10프레임, <b>Space</b> 재생/정지, <b>Esc</b> 손찍기 종료
+  </p>
+
+</div>
+
+</body>
+</html>
