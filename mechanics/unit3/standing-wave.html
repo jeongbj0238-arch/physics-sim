@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>정상파 · 물리 시뮬레이터</title>
+<meta name="description" content="반대로 가는 두 파동이 만드는 정상파, 현과 관에서 생기는 정상파의 진동수, 정상파로 음속 재기" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/theme.css" />
+<link rel="stylesheet" href="standing-wave.css" />
+</head>
+<body data-page="standing-wave">
+
+<div class="page">
+
+  <header class="topbar">
+    <div class="brand">
+      <div>
+        <span class="eyebrow"><a href="index.html">← 탄성파와 소리</a> · Standing Waves</span>
+        <h1>정상파</h1>
+      </div>
+    </div>
+
+    <nav class="tabs" id="tabs" aria-label="활동 단계">
+      <button class="tab is-active" data-tab="1" type="button"><b>1</b>정상파의 형성</button>
+      <button class="tab" data-tab="2" type="button"><b>2</b>현악기</button>
+      <button class="tab" data-tab="3" type="button"><b>3</b>관악기</button>
+      <button class="tab" data-tab="4" type="button"><b>4</b>탐구</button>
+    </nav>
+
+    <div class="topbar-actions">
+      <div class="quick-actions">
+        <button class="btn btn-ghost" id="pauseBtn" type="button">일시정지</button>
+        <button class="btn btn-ghost" id="resetBtn" type="button">초기화</button>
+      </div>
+      <button class="btn btn-ghost" id="settingsToggle" type="button">⚙ 설정</button>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <section class="stage card" id="stage">
+      <canvas id="simCanvas"></canvas>
+      <div class="badge stage-tag" id="statusTag"></div>
+      <div class="stage-toast hidden" id="toast"></div>
+      <div class="stage-hint" id="stageHint"></div>
+    </section>
+
+    <div class="dock">
+
+      <section class="obs-card card" data-card="0">
+        <div class="obs-head">
+          <span class="obs-name" data-role="name">–</span>
+          <span class="obs-tag" data-role="tag"></span>
+        </div>
+        <div class="obs-main">
+          <div class="obs-f" data-role="fbox"><i data-role="sym"></i><b data-role="val">–</b><span data-role="unit"></span></div>
+          <div class="obs-sub">
+            <div><span data-role="k1"></span><b data-role="v1">–</b></div>
+            <div><span data-role="k2"></span><b data-role="v2">–</b></div>
+          </div>
+        </div>
+        <div class="obs-formula" data-role="f1"></div>
+      </section>
+
+      <section class="ctrl card">
+        <div class="ctrl-pane" data-pane="1">
+          <div class="ctrl-row">
+            <button class="btn btn-primary" id="quarterBtn" type="button">T/4 넘기기</button>
+            <button class="btn btn-ghost is-on" id="marksBtn" type="button" aria-pressed="true">마디·배 표시</button>
+          </div>
+          <div class="param-row">
+            <label for="lam1Num" title="파장">λ</label>
+            <input type="range" id="lam1Input" aria-label="파장" />
+            <span class="num-wrap"><input type="number" class="num" id="lam1Num" /><i>m</i></span>
+          </div>
+        </div>
+
+        <div class="ctrl-pane hidden" data-pane="2">
+          <div class="ctrl-row">
+            <div class="seg" id="mode2Seg" role="group" aria-label="진동 찾는 방법">
+              <button type="button" data-mode="pick" class="is-active">진동 고르기</button>
+              <button type="button" data-mode="seek">진동수 찾기</button>
+            </div>
+            <div class="seg seg-n" id="n2Seg" role="group" aria-label="진동 번호">
+              <button type="button" data-n="1" class="is-active">1</button>
+              <button type="button" data-n="2">2</button>
+              <button type="button" data-n="3">3</button>
+              <button type="button" data-n="4">4</button>
+              <button type="button" data-n="5">5</button>
+            </div>
+            <button class="btn btn-primary hidden" id="recBtn" type="button">기록</button>
+          </div>
+          <div class="param-row hidden" id="f2Row">
+            <label for="f2Num" title="진동기의 진동수">f</label>
+            <input type="range" id="f2Input" aria-label="진동기의 진동수" />
+            <span class="num-wrap"><input type="number" class="num" id="f2Num" /><i>Hz</i></span>
+          </div>
+          <div class="param-row">
+            <label for="L2Num" title="줄의 길이">길이</label>
+            <input type="range" id="L2Input" aria-label="줄의 길이" />
+            <span class="num-wrap"><input type="number" class="num" id="L2Num" /><i>m</i></span>
+          </div>
+          <div class="param-row">
+            <label for="T2Num" title="줄을 당기는 힘">장력</label>
+            <input type="range" id="T2Input" aria-label="줄의 장력" />
+            <span class="num-wrap"><input type="number" class="num" id="T2Num" /><i>N</i></span>
+          </div>
+          <div class="param-row">
+            <label>굵기</label>
+            <div class="seg" id="thickSeg" role="group" aria-label="줄의 굵기">
+              <button type="button" data-thick="1" class="is-active">1배</button>
+              <button type="button" data-thick="1.5">1.5배</button>
+              <button type="button" data-thick="2">2배</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ctrl-pane hidden" data-pane="3">
+          <div class="ctrl-row">
+            <div class="seg" id="type3Seg" role="group" aria-label="관의 종류">
+              <button type="button" data-type="open" class="is-active">양쪽 열린 관</button>
+              <button type="button" data-type="closed">한쪽 닫힌 관</button>
+            </div>
+          </div>
+          <div class="ctrl-row">
+            <div class="seg seg-n" id="idx3Seg" role="group" aria-label="진동 번호">
+              <button type="button" data-idx="1" class="is-active">기본</button>
+              <button type="button" data-idx="2">둘째</button>
+              <button type="button" data-idx="3">셋째</button>
+              <button type="button" data-idx="4">넷째</button>
+            </div>
+          </div>
+          <div class="param-row">
+            <label for="L3Num" title="관의 길이">길이</label>
+            <input type="range" id="L3Input" aria-label="관의 길이" />
+            <span class="num-wrap"><input type="number" class="num" id="L3Num" /><i>m</i></span>
+          </div>
+        </div>
+
+        <div class="ctrl-pane hidden" data-pane="4">
+          <div class="ctrl-row">
+            <div class="seg" id="ex4Seg" role="group" aria-label="탐구 활동">
+              <button type="button" data-ex="plate" class="is-active">반사판</button>
+              <button type="button" data-ex="tube">공명관</button>
+            </div>
+            <button class="btn btn-ghost" id="show4Btn" type="button" aria-pressed="false">정상파 보기</button>
+          </div>
+          <div class="param-row" data-ex-only="plate">
+            <label for="f4pNum" title="스피커의 진동수">f</label>
+            <input type="range" id="f4pInput" aria-label="스피커의 진동수" />
+            <span class="num-wrap"><input type="number" class="num" id="f4pNum" /><i>Hz</i></span>
+          </div>
+          <div class="param-row hidden" data-ex-only="tube">
+            <label>소리굽쇠</label>
+            <div class="seg seg-n" id="forkSeg" role="group" aria-label="소리굽쇠 진동수">
+              <button type="button" data-f="384">384</button>
+              <button type="button" data-f="512" class="is-active">512</button>
+              <button type="button" data-f="640">640</button>
+              <button type="button" data-f="768">768 Hz</button>
+            </div>
+          </div>
+          <div class="param-row">
+            <label for="tempNum" title="공기의 온도">기온</label>
+            <input type="range" id="tempInput" aria-label="기온" />
+            <span class="num-wrap"><input type="number" class="num" id="tempNum" /><i>°C</i></span>
+          </div>
+          <div class="param-row" data-ex-only="plate">
+            <label for="x4Num" title="스피커에서 마이크까지">마이크</label>
+            <input type="range" id="x4Input" aria-label="마이크 위치" />
+            <span class="num-wrap"><input type="number" class="num" id="x4Num" /><i>cm</i></span>
+          </div>
+          <div class="param-row hidden" data-ex-only="tube">
+            <label for="h4Num" title="바닥에서 물 표면까지">물 높이</label>
+            <input type="range" id="h4Input" aria-label="물 높이" />
+            <span class="num-wrap"><input type="number" class="num" id="h4Num" /><i>cm</i></span>
+          </div>
+          <div class="ctrl-row">
+            <button class="btn btn-primary" id="markBtn" type="button">표시</button>
+            <button class="btn btn-ghost" id="clearBtn" type="button">지우기</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="obs-card card" data-card="1">
+        <div class="obs-head">
+          <span class="obs-name" data-role="name">–</span>
+          <span class="obs-tag" data-role="tag"></span>
+          <button class="speaker hidden" data-role="spk" type="button" aria-pressed="false" aria-label="소리 켜기">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5H4z"/><path class="wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>
+          </button>
+        </div>
+        <div class="obs-main">
+          <div class="obs-f" data-role="fbox"><i data-role="sym"></i><b data-role="val">–</b><span data-role="unit"></span></div>
+          <div class="obs-sub">
+            <div><span data-role="k1"></span><b data-role="v1">–</b></div>
+            <div><span data-role="k2"></span><b data-role="v2">–</b></div>
+          </div>
+        </div>
+        <div class="obs-formula" data-role="f1"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <div class="settings-overlay hidden" id="settingsOverlay">
+    <div class="settings-backdrop" id="settingsBackdrop"></div>
+    <aside class="card settings-panel">
+      <div class="settings-panel-header">
+        <h2>설정</h2>
+        <button class="settings-close" id="settingsClose" type="button" aria-label="설정 닫기">✕</button>
+      </div>
+
+      <div class="control-group">
+        <div class="control-row"><label for="periodSelect">화면 속도</label></div>
+        <select id="periodSelect">
+          <option value="6">느리게 (한 번 진동에 6초)</option>
+          <option value="3" selected>보통 (한 번 진동에 3초)</option>
+          <option value="1.5">빠르게 (한 번 진동에 1.5초)</option>
+        </select>
+      </div>
+
+      <p class="control-hint">화면만 느리게 보여 주고, 소리는 실제 진동수로 낸다. 음속은 15 °C에서 340 m/s다.</p>
+    </aside>
+  </div>
+
+</div>
+
+<script src="../../shared/sim-utils.js"></script>
+<script src="standing-wave.js"></script>
+</body>
+</html>

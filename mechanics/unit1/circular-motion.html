@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>등속 원운동 · 물리 시뮬레이터</title>
+<meta name="description" content="각속도가 어떻게 정의되고 구심 가속도가 어떻게 유도되는지 속도 벡터 작도로 직접 확인하는 등속 원운동 시뮬레이션" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/theme.css" />
+<link rel="stylesheet" href="circular-motion.css" />
+</head>
+<body data-page="circular">
+
+<div class="page">
+
+  <header class="topbar">
+    <div class="brand">
+      <div>
+        <span class="eyebrow"><a href="index.html">← 시공간과 운동</a> · Circular Motion</span>
+        <h1>등속 원운동</h1>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="quick-actions" id="quickActions">
+        <button class="btn btn-primary" id="playBtn" type="button">재생</button>
+        <button class="btn btn-ghost" id="pauseBtn" type="button" disabled>일시정지</button>
+        <button class="btn btn-ghost" id="resetBtn" type="button">초기화</button>
+      </div>
+      <button class="settings-fab btn btn-secondary" id="settingsToggle" type="button">⚙ 설정</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="stage">
+
+      <div class="canvas-panel card" id="canvasPanel">
+        <canvas id="simCanvas"></canvas>
+        <div class="canvas-tag badge" id="statusTag">정지</div>
+        <div class="legend" id="legend"></div>
+        <div class="stage-hint" id="stageHint"></div>
+      </div>
+
+      <aside class="observe card">
+        <nav class="steps" id="steps">
+          <button class="step-tab is-active" data-step="1" type="button"><b>1</b> 각속도</button>
+          <button class="step-tab" data-step="2" type="button"><b>2</b> 구심 가속도</button>
+          <button class="step-tab" data-step="3" type="button"><b>3</b> 구심력</button>
+        </nav>
+
+        <div class="step-body" id="stepBody">
+
+          <!-- ───────── 1단계 · 각속도 ───────── -->
+          <section class="step-pane is-active" data-pane="1">
+            <p class="pane-lead">
+              등속 원운동은 <b>같은 시간 동안 같은 각도</b>만큼 회전한다.
+              그래서 회전의 빠르기를 각도의 변화량으로 나타낼 수 있다.
+            </p>
+
+            <div class="readout">
+              <div class="ro"><span>앞으로 볼 시간 Δt</span><b id="ro1dt">–</b></div>
+              <div class="ro"><span>회전할 각 Δθ</span><b id="ro1dthDeg">–</b></div>
+              <div class="ro"><span>Δθ (라디안)</span><b id="ro1dthRad">–</b></div>
+              <div class="ro accent"><span>각속도 ω = Δθ / Δt</span><b id="ro1omega">–</b></div>
+            </div>
+
+            <div class="eqcheck">
+              <div class="eq"><span>ω = 2π / T</span><b id="ro1omega2">–</b></div>
+              <div class="eq"><span>v = rω</span><b id="ro1v">–</b></div>
+            </div>
+
+            <div class="compare hidden" id="cmpBox">
+              <h4>두 물체 비교 <span class="cmp-mode" id="cmpMode">–</span></h4>
+              <table class="cmp-table">
+                <tr>
+                  <th></th>
+                  <th>r<small>m</small></th>
+                  <th>v<small>m/s</small></th>
+                  <th>ω<small>rad/s</small></th>
+                  <th>a<small>m/s²</small></th>
+                </tr>
+                <tr class="cmp-a"><td>A</td><td id="cmpRa">–</td><td id="cmpVa">–</td><td id="cmpWa">–</td><td id="cmpAa">–</td></tr>
+                <tr class="cmp-b"><td>B</td><td id="cmpRb">–</td><td id="cmpVb">–</td><td id="cmpWb">–</td><td id="cmpAb">–</td></tr>
+              </table>
+              <p class="note" id="cmpNote"></p>
+            </div>
+
+            <p class="note" id="note1">
+              설정에서 <b>물체 B 표시</b>를 켜면 두 물체를 함께 돌릴 수 있다.
+              <b>ω를 같게</b> 맞췄을 때와 <b>v를 같게</b> 맞췄을 때 결론이 어떻게 뒤집히는지 비교해 보자.
+            </p>
+          </section>
+
+          <!-- ───────── 2단계 · 구심 가속도 ───────── -->
+          <section class="step-pane" data-pane="2">
+            <p class="pane-lead">
+              속력이 그대로여도 <b>방향</b>이 바뀌면 속도는 변한 것이다.
+              Δt 동안 v₁ → v₂ 로 변했을 때, 그 차이 <b>Δv = v₂ − v₁</b> 이 가속도의 방향을 정한다.
+            </p>
+
+            <canvas id="vecCanvas" class="vec-canvas"></canvas>
+
+            <button class="btn btn-secondary wide" id="deriveOpen" type="button">
+              ⛶ 전체 화면으로 유도 보기
+            </button>
+
+            <div class="control-group">
+              <div class="control-row">
+                <label for="dthetaInput">회전각 Δθ</label>
+                <span class="control-value" id="dthetaValue">60°</span>
+              </div>
+              <input type="range" id="dthetaInput" min="0" max="1000" step="1" value="1000" />
+              <p class="control-hint">
+                <b>왼쪽</b>으로 밀수록 Δθ가 작아집니다 (90° → 0.01°).
+                전체 화면에서는 <b>극한으로</b> 버튼으로 천천히 줄여 볼 수 있어요.
+              </p>
+            </div>
+
+            <div class="readout">
+              <div class="ro"><span>걸린 시간 Δt = Δθ / ω</span><b id="ro2dt">–</b></div>
+              <div class="ro white"><span>|Δv| (벡터 뺄셈으로 측정)</span><b id="ro2dv">–</b></div>
+              <div class="ro"><span>v·Δθ (교과서의 근사)</span><b id="ro2approx">–</b></div>
+              <div class="ro accent"><span>|Δv| / (v·Δθ)</span><b id="ro2ratio">–</b></div>
+              <div class="ro accent"><span>Δv와 중심 방향의 사잇각</span><b id="ro2angle">–</b></div>
+            </div>
+
+            <p class="note" id="note2">
+              Δθ를 줄일수록 비율은 <b>1</b>에, 사잇각은 <b>0°</b>에 가까워진다.
+              교과서가 “Δθ가 작을 때 Δv = vΔθ”라고 쓴 근거가 이것이다.
+            </p>
+
+            <div class="readout">
+              <div class="ro"><span>a = |Δv| / Δt (측정값)</span><b id="ro2ameas">–</b></div>
+              <div class="ro accent"><span>a = v² / r (극한값)</span><b id="ro2atrue">–</b></div>
+              <div class="ro second hidden" id="ro2bRow"><span>물체 B의 a = v₂²/r₂</span><b id="ro2ab">–</b></div>
+            </div>
+
+            <h4 class="ident-title">같은 값의 세 가지 표현</h4>
+            <div class="identity">
+              <div><span>vω</span><b id="idA">–</b></div>
+              <div><span>rω²</span><b id="idB">–</b></div>
+              <div><span>v²/r</span><b id="idC">–</b></div>
+            </div>
+          </section>
+
+          <!-- ───────── 3단계 · 구심력 ───────── -->
+          <section class="step-pane" data-pane="3">
+            <p class="pane-lead">
+              가속도가 있다면 뉴턴 제2법칙에 의해 힘이 있어야 한다.
+              원의 중심을 향하는 이 힘이 <b>구심력</b>이다.
+            </p>
+
+            <div class="readout">
+              <div class="ro"><span>질량 m</span><b id="ro3m">–</b></div>
+              <div class="ro"><span>구심 가속도 a = v²/r</span><b id="ro3a">–</b></div>
+              <div class="ro accent"><span>구심력 F = m v²/r</span><b id="ro3f">–</b></div>
+              <div class="ro"><span>F의 방향</span><b id="ro3dir">원의 중심</b></div>
+              <div class="ro second hidden" id="ro3bmRow"><span>물체 B의 질량 m₂</span><b id="ro3mb">–</b></div>
+              <div class="ro second hidden" id="ro3bRow"><span>물체 B의 F = m₂ v₂²/r₂</span><b id="ro3fb">–</b></div>
+            </div>
+
+            <button class="btn btn-primary wide" id="cutBtn" type="button">줄 끊기</button>
+
+            <div class="predict-result hidden" id="predictResult"></div>
+
+            <p class="note">
+              구심력은 속력을 바꾸지 않고 <b>방향만</b> 바꾼다.
+              상황에 따라 장력·중력·마찰력·수직 항력이 그 역할을 맡는다.
+            </p>
+          </section>
+
+        </div>
+      </aside>
+
+    </section>
+  </main>
+
+  <!-- ───────── 전체 화면 · 구심 가속도의 유도 ───────── -->
+  <div class="derive-overlay hidden" id="deriveOverlay">
+    <div class="derive-panel">
+
+      <header class="derive-head">
+        <div>
+          <span class="eyebrow">교과서 p.24</span>
+          <h2>구심 가속도의 유도</h2>
+        </div>
+        <div class="derive-cond" id="deriveCond">–</div>
+        <button class="derive-close" id="deriveClose" type="button" aria-label="닫기">✕</button>
+      </header>
+
+      <div class="derive-body">
+
+        <section class="derive-col">
+          <h3>① 원 위의 움직임 <span>반지름 = r</span></h3>
+          <canvas id="posCanvas"></canvas>
+          <p class="derive-cap">
+            Δt 동안 물체가 <b>P₁ → P₂</b> 로 <b>Δθ</b> 만큼 돈다.
+            지나간 곡선의 길이가 호 <b>Δs</b>. 속도 <b>v</b> 는 언제나 반지름과 <b>수직</b>(접선 방향)이다.
+          </p>
+        </section>
+
+        <section class="derive-col">
+          <h3>
+            ② 속도만 따로 모으면
+            <button class="mini-toggle" id="alignToggle" type="button">① 과 나란히 놓기</button>
+          </h3>
+          <canvas id="velCanvas"></canvas>
+          <p class="derive-cap">
+            ①의 <b>v₁ · v₂</b> 를 꼬리가 한 점에 모이도록 옮겨 그린 것.
+            길이가 같으니 두 끝은 <b>반지름 v 인 원</b> 위에 놓인다. 두 끝을 잇는 화살표가 <b>Δv</b> 다.
+          </p>
+        </section>
+
+        <section class="derive-col derive-steps">
+          <h3>③ 유도</h3>
+
+          <div class="dhint">
+            <b>Δ</b>(델타)는 <b>“변한 양”</b>이라는 뜻이다.
+            Δθ는 변한 각, Δs는 지나간 거리, Δv는 변한 속도, Δt는 걸린 시간.
+            <b>ω</b>(오메가)는 1초에 도는 각으로, 단위는 rad/s 다.
+          </div>
+
+          <div class="dstep">
+            <div class="dstep-t"><b>1</b> 휘어진 호를 곧은 거리로 바꾼다</div>
+            <p class="dwhy">곡선 길이는 다루기 어렵다. 그런데 Δθ가 작아지면 <b>호와 곧은 거리(현)가 거의 같아진다.</b></p>
+            <div class="drow"><span>호 Δs = r·Δθ</span><b id="dArc">–</b></div>
+            <div class="drow"><span>곧은 거리 (현)</span><b id="dChord">–</b></div>
+            <div class="drow accent"><span>현 ÷ 호</span><b id="dChordRatio">–</b></div>
+          </div>
+
+          <div class="dstep">
+            <div class="dstep-t"><b>2</b> 속도 쪽도 똑같다</div>
+            <p class="dwhy">②의 부채꼴은 ①과 <b>반지름만 다른 같은 모양</b>이다. 그래서 같은 방식이 그대로 통한다.</p>
+            <div class="drow"><span>호 v·Δθ</span><b id="dApprox">–</b></div>
+            <div class="drow"><span>곧은 거리 |Δv|</span><b id="dDv">–</b></div>
+            <div class="drow accent"><span>|Δv| ÷ vΔθ</span><b id="dDvRatio">–</b></div>
+            <p class="dnote">
+              위 단계의 비율과 <b>소수점까지 똑같다.</b> 두 부채꼴이 닮은 도형이라는 증거다.
+            </p>
+          </div>
+
+          <div class="dstep">
+            <div class="dstep-t"><b>3</b> Δt 로 나눈다</div>
+            <p class="dwhy">거리를 시간으로 나누면 <b>속력</b>, 속도의 변화를 시간으로 나누면 <b>가속도</b>다.</p>
+            <div class="drow"><span>v = Δs/Δt = rω</span><b id="dV">–</b></div>
+            <div class="drow"><span>a = |Δv|/Δt (재어 본 값)</span><b id="dAMeas">–</b></div>
+            <div class="drow accent"><span>a = vω = rω² = v²/r</span><b id="dATrue">–</b></div>
+            <p class="dnote">
+              Δθ를 줄일수록 재어 본 값이 아래 공식값에 <b>가까워진다.</b>
+            </p>
+          </div>
+
+          <div class="dstep">
+            <div class="dstep-t"><b>4</b> 그래서 어느 쪽을 향할까</div>
+            <p class="dwhy">가속도의 방향은 <b>Δv의 방향</b>과 같다. ②에서 Δv가 어디를 가리키는지 보자.</p>
+            <div class="drow"><span>Δv 와 중심 방향의 차</span><b id="dAngle">–</b></div>
+            <div class="drow"><span>= Δθ / 2</span><b id="dHalf">–</b></div>
+            <p class="dnote">
+              둘의 차이는 <b>언제나 Δθ의 절반</b>이다. Δθ를 0으로 보내면 차이도 0이 되어
+              Δv가 <b>정확히 원의 중심</b>을 향한다. 그래서 이름이 <b>구심(求心)</b> 가속도다.
+            </p>
+          </div>
+        </section>
+
+      </div>
+
+      <footer class="derive-foot">
+        <div class="derive-legend">
+          <span><i style="background:#8a8f98"></i>반지름 r</span>
+          <span><i style="background:#f7f8f8"></i>속도 v</span>
+          <span><i style="background:#828fff"></i>호 (휘어진 길이)</span>
+          <span><i style="background:#5e6ad2"></i>현 · Δv (곧은 길이)</span>
+        </div>
+        <div class="derive-slider">
+          <label for="dthetaFull">회전각 Δθ</label>
+          <span class="tick">작게</span>
+          <input type="range" id="dthetaFull" min="0" max="1000" step="1" value="1000" />
+          <span class="tick">크게</span>
+          <span class="derive-dth" id="dthetaFullValue">60.0°</span>
+          <button class="btn btn-primary" id="limitBtn" type="button">극한으로</button>
+        </div>
+      </footer>
+
+    </div>
+  </div>
+
+  <div class="settings-overlay hidden" id="settingsOverlay">
+    <div class="settings-backdrop" id="settingsBackdrop"></div>
+    <aside class="controls card settings-panel" id="controlsPanel">
+      <div class="settings-panel-header">
+        <h2>설정</h2>
+        <button class="settings-close" id="settingsClose" type="button" aria-label="설정 닫기">✕</button>
+      </div>
+
+      <h3 class="set-title">물체 A</h3>
+
+      <div class="control-group">
+        <div class="control-row">
+          <label for="rInput">반지름 r</label>
+          <span class="num-wrap"><input type="number" class="num" id="rValue" min="0.5" max="4" step="0.1" /><i>m</i></span>
+        </div>
+        <input type="range" id="rInput" min="0.5" max="4" step="0.1" value="2" />
+      </div>
+
+      <div class="linked-note">
+        <b>v = 2πr / T</b> 이므로 r · T · v 중 독립인 값은 둘뿐이다.
+        아래 둘 중 <b>마지막으로 건드린 쪽이 기준</b>이 되고, 나머지는 자동으로 계산된다.
+      </div>
+
+      <div class="control-group" id="tGroup">
+        <div class="control-row">
+          <label for="tInput">주기 T</label>
+          <span class="num-wrap"><input type="number" class="num" id="tValue" min="0.6" max="8" step="0.01" /><i>s</i></span>
+        </div>
+        <input type="range" id="tInput" min="0.6" max="8" step="0.1" value="3" />
+        <p class="control-hint driver-hint" id="tHint">기준값</p>
+      </div>
+
+      <div class="control-group" id="vGroup">
+        <div class="control-row">
+          <label for="vInput">속력 v</label>
+          <span class="num-wrap"><input type="number" class="num" id="vValue" min="0.4" max="12" step="0.01" /><i>m/s</i></span>
+        </div>
+        <input type="range" id="vInput" min="0.4" max="12" step="0.05" value="4.19" />
+        <p class="control-hint driver-hint" id="vHint">계산된 값</p>
+      </div>
+
+      <div class="control-group">
+        <div class="control-row">
+          <label for="mInput">질량 m</label>
+          <span class="num-wrap"><input type="number" class="num" id="mValue" min="0.1" max="5" step="0.1" /><i>kg</i></span>
+        </div>
+        <input type="range" id="mInput" min="0.1" max="5" step="0.1" value="1" />
+      </div>
+
+      <h3 class="set-title">물체 B <span class="set-sub">1단계 비교용</span></h3>
+
+      <div class="control-group toggles">
+        <label class="toggle">
+          <input type="checkbox" id="showSecond" />
+          <span>물체 B 표시</span>
+        </label>
+      </div>
+
+      <div id="secondBlock" class="hidden">
+
+        <div class="control-group">
+          <div class="control-row">
+            <label for="linkMode">A와의 관계</label>
+          </div>
+          <select id="linkMode">
+            <option value="omega" selected>각속도 ω 를 A와 같게</option>
+            <option value="speed">속력 v 를 A와 같게</option>
+            <option value="free">따로 설정</option>
+          </select>
+        </div>
+
+        <div class="control-group" id="r2Group">
+          <div class="control-row">
+            <label for="r2Input">반지름 r₂</label>
+            <span class="num-wrap"><input type="number" class="num" id="r2Value" min="0.3" max="4" step="0.1" /><i>m</i></span>
+          </div>
+          <input type="range" id="r2Input" min="0.3" max="4" step="0.1" value="1" />
+        </div>
+
+        <div class="control-group hidden" id="t2Group">
+          <div class="control-row">
+            <label for="t2Input">주기 T₂</label>
+            <span class="num-wrap"><input type="number" class="num" id="t2Value" min="0.6" max="8" step="0.01" /><i>s</i></span>
+          </div>
+          <input type="range" id="t2Input" min="0.6" max="8" step="0.1" value="3" />
+          <p class="control-hint driver-hint" id="t2Hint">기준값</p>
+        </div>
+
+        <div class="control-group hidden" id="v2Group">
+          <div class="control-row">
+            <label for="v2Input">속력 v₂</label>
+            <span class="num-wrap"><input type="number" class="num" id="v2Value" min="0.4" max="12" step="0.01" /><i>m/s</i></span>
+          </div>
+          <input type="range" id="v2Input" min="0.4" max="12" step="0.05" value="2.09" />
+          <p class="control-hint driver-hint" id="v2Hint">계산된 값</p>
+        </div>
+
+        <div class="control-group" id="m2Group">
+          <div class="control-row">
+            <label for="m2Input">질량 m₂</label>
+            <span class="num-wrap"><input type="number" class="num" id="m2Value" min="0.1" max="5" step="0.1" /><i>kg</i></span>
+          </div>
+          <input type="range" id="m2Input" min="0.1" max="5" step="0.1" value="1" />
+          <p class="control-hint">질량은 A와의 관계(ω·v)와 무관하다. 세 모드 어디서나 따로 정할 수 있다.</p>
+        </div>
+
+        <div class="derived-note" id="secondDerived"></div>
+      </div>
+
+      <p class="hint">
+        <b>ω 같게</b>는 두 물체가 같은 축에 매달려 함께 도는 상황이고,
+        <b>v 같게</b>는 반지름이 다른 두 트랙을 같은 속력으로 도는 상황이다.
+        같은 원운동인데 <b>어느 쪽을 고정하느냐에 따라 결론이 뒤집힌다.</b>
+      </p>
+    </aside>
+  </div>
+
+</div>
+
+<script src="../../shared/sim-utils.js"></script>
+<script src="circular-motion.js"></script>
+</body>
+</html>

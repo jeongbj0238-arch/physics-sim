@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>전하와 전기장 · 물리 시뮬레이터</title>
+<meta name="description" content="쿨롱 힘에서 전기장, 전기력선, 전위와 등전위면까지 전하 주위의 공간을 보고 조작하는 시뮬레이션" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../shared/theme.css" />
+<link rel="stylesheet" href="electric-field.css" />
+</head>
+<body data-page="electric-field">
+
+<div class="page">
+
+  <header class="topbar">
+    <div class="brand">
+      <div>
+        <span class="eyebrow"><a href="index.html">← 전자기적 상호작용</a> · Electric Field</span>
+        <h1>전하와 전기장</h1>
+      </div>
+    </div>
+
+    <nav class="tabs" id="tabs" aria-label="활동 단계">
+      <button class="tab is-active" data-tab="1" type="button"><b>1</b>전기력</button>
+      <button class="tab" data-tab="2" type="button"><b>2</b>전기장</button>
+      <button class="tab" data-tab="3" type="button"><b>3</b>전기력선</button>
+      <button class="tab" data-tab="4" type="button"><b>4</b>전위와 등전위면</button>
+      <button class="tab" data-tab="5" type="button"><b>5</b>해석하기</button>
+    </nav>
+
+    <div class="topbar-actions">
+      <div class="quick-actions">
+        <button class="btn btn-ghost" id="resetBtn" type="button">초기화</button>
+      </div>
+      <button class="btn btn-ghost" id="settingsToggle" type="button">⚙ 설정</button>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <section class="stage card" id="stage">
+      <canvas id="simCanvas"></canvas>
+      <div class="badge stage-tag" id="statusTag"></div>
+      <div class="stage-hint" id="stageHint"></div>
+    </section>
+
+    <div class="dock">
+
+      <section class="obs-card card" data-card="0">
+        <div class="obs-head">
+          <span class="obs-name" data-role="name">–</span>
+          <span class="obs-tag" data-role="tag"></span>
+        </div>
+        <div class="obs-main">
+          <div class="obs-f" data-role="fbox"><i data-role="sym"></i><b data-role="val">–</b><span data-role="unit"></span></div>
+          <div class="obs-sub">
+            <div><span data-role="k1"></span><b data-role="v1">–</b></div>
+            <div><span data-role="k2"></span><b data-role="v2">–</b></div>
+          </div>
+        </div>
+        <div class="obs-formula" data-role="f1"></div>
+      </section>
+
+      <section class="ctrl card">
+        <div class="ctrl-pane" data-pane="1">
+          <div class="ctrl-row">
+            <button class="btn btn-primary" id="baseBtn" type="button">기준 잡기</button>
+            <button class="btn btn-ghost" id="baseClearBtn" type="button">기준 지우기</button>
+          </div>
+          <div class="param-row">
+            <label for="t1QNum" title="왼쪽 전하의 전하량">Q</label>
+            <input type="range" id="t1QInput" aria-label="전하 Q" />
+            <span class="num-wrap"><input type="number" class="num" id="t1QNum" /><i>μC</i></span>
+          </div>
+          <div class="param-row">
+            <label for="t1qNum" title="오른쪽 전하의 전하량">q</label>
+            <input type="range" id="t1qInput" aria-label="전하 q" />
+            <span class="num-wrap"><input type="number" class="num" id="t1qNum" /><i>μC</i></span>
+          </div>
+          <div class="param-row">
+            <label for="t1rNum" title="두 전하 사이의 거리">r</label>
+            <input type="range" id="t1rInput" aria-label="거리 r" />
+            <span class="num-wrap"><input type="number" class="num" id="t1rNum" /><i>m</i></span>
+          </div>
+        </div>
+
+        <div class="ctrl-pane hidden" data-pane="field">
+          <div class="ctrl-row">
+            <div class="seg seg-n" id="presetSeg" role="group" aria-label="전하 배치">
+              <button type="button" data-preset="plus" title="양전하 하나">+</button>
+              <button type="button" data-preset="minus" title="음전하 하나">−</button>
+              <button type="button" data-preset="dipole" title="크기가 같은 양전하와 음전하">+ −</button>
+              <button type="button" data-preset="same" title="크기가 같은 양전하 둘">+ +</button>
+              <button type="button" data-preset="plate" title="평행한 두 판">평행판</button>
+            </div>
+            <button class="btn btn-ghost btn-sm" id="addPlusBtn" type="button" title="양전하 추가">+추가</button>
+            <button class="btn btn-ghost btn-sm" id="addMinusBtn" type="button" title="음전하 추가">−추가</button>
+            <button class="btn btn-ghost btn-sm" id="removeBtn" type="button" title="선택한 전하 지우기">삭제</button>
+          </div>
+          <div class="ctrl-row" data-only="2">
+            <button class="btn btn-ghost" id="testBtn" type="button" aria-pressed="true">시험 전하</button>
+            <button class="btn btn-ghost" id="gridBtn" type="button" aria-pressed="true">화살표 격자</button>
+            <button class="btn btn-ghost" id="partsBtn" type="button" aria-pressed="false">전하별 성분</button>
+          </div>
+          <div class="ctrl-row" data-only="3">
+            <button class="btn btn-ghost" id="arrowsBtn" type="button" aria-pressed="true">방향 화살표</button>
+            <button class="btn btn-ghost" id="eqBtn" type="button" aria-pressed="false">등전위선</button>
+          </div>
+          <div class="ctrl-row" data-only="4">
+            <button class="btn btn-ghost" id="contourBtn" type="button" aria-pressed="true">등고선</button>
+            <button class="btn btn-ghost" id="surfLinesBtn" type="button" aria-pressed="true">전기력선</button>
+            <button class="btn btn-ghost" id="topBtn" type="button" aria-pressed="false">위에서 보기</button>
+          </div>
+          <div class="param-row">
+            <label for="selQNum" title="선택한 전하의 전하량">Q</label>
+            <input type="range" id="selQInput" aria-label="선택한 전하의 전하량" />
+            <span class="num-wrap"><input type="number" class="num" id="selQNum" /><i>μC</i></span>
+          </div>
+          <div class="param-row" data-only="2">
+            <label for="testqNum" title="시험 전하의 전하량">q</label>
+            <input type="range" id="testqInput" aria-label="시험 전하" />
+            <span class="num-wrap"><input type="number" class="num" id="testqNum" /><i>μC</i></span>
+          </div>
+          <div class="param-row" data-only="3">
+            <label for="densNum" title="전하 1 μC에서 나오는 전기력선 수">선 수</label>
+            <input type="range" id="densInput" aria-label="전기력선 수" />
+            <span class="num-wrap"><input type="number" class="num" id="densNum" /><i>개/μC</i></span>
+          </div>
+          <div class="param-row" data-only="4">
+            <label for="hgtNum" title="곡면 높이 배율">높이</label>
+            <input type="range" id="hgtInput" aria-label="곡면 높이 배율" />
+            <span class="num-wrap"><input type="number" class="num" id="hgtNum" /><i>배</i></span>
+          </div>
+        </div>
+
+        <div class="ctrl-pane hidden" data-pane="5">
+          <div class="ctrl-row quiz-choices" id="choiceRow"></div>
+          <div class="ctrl-row">
+            <button class="btn btn-primary" id="nextBtn" type="button">다음 문제</button>
+            <button class="btn btn-ghost" id="scoreClearBtn" type="button">점수 지우기</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="obs-card card" data-card="1">
+        <div class="obs-head">
+          <span class="obs-name" data-role="name">–</span>
+          <span class="obs-tag" data-role="tag"></span>
+        </div>
+        <div class="obs-main">
+          <div class="obs-f" data-role="fbox"><i data-role="sym"></i><b data-role="val">–</b><span data-role="unit"></span></div>
+          <div class="obs-sub">
+            <div><span data-role="k1"></span><b data-role="v1">–</b></div>
+            <div><span data-role="k2"></span><b data-role="v2">–</b></div>
+          </div>
+        </div>
+        <div class="obs-formula" data-role="f1"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <div class="settings-overlay hidden" id="settingsOverlay">
+    <div class="settings-backdrop" id="settingsBackdrop"></div>
+    <aside class="card settings-panel">
+      <div class="settings-panel-header">
+        <h2>설정</h2>
+        <button class="settings-close" id="settingsClose" type="button" aria-label="설정 닫기">✕</button>
+      </div>
+
+      <div class="control-group">
+        <div class="control-row"><label for="dvSelect">등전위선 간격</label></div>
+        <select id="dvSelect">
+          <option value="2000">2 kV</option>
+          <option value="5000" selected>5 kV</option>
+          <option value="10000">10 kV</option>
+        </select>
+      </div>
+
+      <p class="control-hint">쿨롱 상수 k = 9.0×10⁹ N·m²/C². 전위는 무한히 먼 곳을 0으로 잡는다. 전하 바로 곁은 전위가 매우 커서 곡면을 60 kV에서 자른다.</p>
+    </aside>
+  </div>
+
+</div>
+
+<script src="../../shared/sim-utils.js"></script>
+<script src="electric-field.js"></script>
+</body>
+</html>
