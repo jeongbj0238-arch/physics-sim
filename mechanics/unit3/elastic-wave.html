@@ -80,6 +80,11 @@
             <button class="btn btn-ghost cont-btn" type="button">연속파</button>
           </div>
           <div class="param-row">
+            <label for="aNum1" title="펄스와 연속파의 진폭">진폭</label>
+            <input type="range" class="a-input" min="0.1" max="0.4" step="0.01" aria-label="진폭" />
+            <span class="num-wrap"><input type="number" class="num a-num" id="aNum1" min="0.1" max="0.4" step="0.01" /><i>m</i></span>
+          </div>
+          <div class="param-row">
             <label for="fNum1">진동수</label>
             <input type="range" class="f-input" min="0.5" max="3" step="0.1" aria-label="연속파 진동수" />
             <span class="num-wrap"><input type="number" class="num f-num" id="fNum1" min="0.5" max="3" step="0.1" /><i>Hz</i></span>
@@ -96,6 +101,11 @@
             <button class="btn btn-ghost cont-btn" type="button">연속파</button>
           </div>
           <div class="param-row">
+            <label for="aNum2" title="펄스와 연속파의 진폭">진폭</label>
+            <input type="range" class="a-input" min="0.1" max="0.4" step="0.01" aria-label="진폭" />
+            <span class="num-wrap"><input type="number" class="num a-num" id="aNum2" min="0.1" max="0.4" step="0.01" /><i>m</i></span>
+          </div>
+          <div class="param-row">
             <label for="fNum2">진동수</label>
             <input type="range" class="f-input" min="0.5" max="3" step="0.1" aria-label="연속파 진동수" />
             <span class="num-wrap"><input type="number" class="num f-num" id="fNum2" min="0.5" max="3" step="0.1" /><i>Hz</i></span>
@@ -108,8 +118,6 @@
               <button type="button" data-order="LH" class="is-active">얇은 → 두꺼운</button>
               <button type="button" data-order="HL">두꺼운 → 얇은</button>
             </div>
-          </div>
-          <div class="ctrl-row">
             <button class="btn btn-primary pulse-btn" type="button">펄스</button>
             <button class="btn btn-ghost cont-btn" type="button">연속파</button>
           </div>
@@ -117,6 +125,11 @@
             <label for="thickNum" title="두꺼운 줄의 두께 (얇은 줄의 몇 배)">두께</label>
             <input type="range" id="thickInput" min="1" max="3" step="0.5" aria-label="두꺼운 줄의 두께" />
             <span class="num-wrap"><input type="number" class="num" id="thickNum" min="1" max="3" step="0.5" /><i>배</i></span>
+          </div>
+          <div class="param-row">
+            <label for="aNum3" title="펄스와 연속파의 진폭">진폭</label>
+            <input type="range" class="a-input" min="0.1" max="0.4" step="0.01" aria-label="진폭" />
+            <span class="num-wrap"><input type="number" class="num a-num" id="aNum3" min="0.1" max="0.4" step="0.01" /><i>m</i></span>
           </div>
           <div class="param-row">
             <label for="fNum3">진동수</label>

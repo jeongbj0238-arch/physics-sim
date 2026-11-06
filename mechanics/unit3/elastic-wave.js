@@ -47,8 +47,11 @@
   const DX = L / (NODES - 1);        // 마디 간격 0.0125 m
   const BEAD_EVERY = 8;              // 마디 8개마다 공 하나 → 61개
   const SPEED = { T: 2.0, L: 3.5 };  // 얇은 줄의 횡파 · 종파 속력 (m/s) — 지진파처럼 종파가 약 1.7배 빠르다
-  const AMP = { T: 0.3, L: 0.25 };   // 펄스·연속파 진폭 (m)
-  const AMP_FEED = 0.25;             // 탭 2·3 연속파 진폭 — 반사파와 겹쳐 두 배가 돼도 무대에 들어가게
+  const AMP = { T: 0.3, L: 0.25 };   // 진폭 기본값 (m)
+  const AMP_MIN = 0.1;
+  // 진폭 상한 — 종파는 더 크면 공끼리 겹친다. 탭 2·3은 연속파가 반사파와 겹쳐 커져도 무대에 들어가야 한다
+  const ampMax = () => (state.mode === "L" ? 0.25 : state.tab === 1 ? 0.4 : 0.3);
+  const AMP_SLEW = 0.5;              // 연속파 도중 진폭을 바꿀 때 따라가는 빠르기 (m/s) — 갑자기 바뀌면 잔물결이 생긴다
   const F_MIN = 0.5;
   const F_MAX = 3;                   // 연속파 진동수 (Hz). 탭 3은 두꺼운 줄의 파장이 0.67 m보다 짧아지지 않게 더 낮춘다
   const STRAIN_MAX = 0.6;            // 종파에서 용수철이 줄어들 수 있는 최대 비율 — 넘으면 공끼리 겹친다
@@ -100,10 +103,14 @@
     cards: "pulse",     // 탭 2·3 카드 — 마지막으로 보낸 것이 펄스인지 연속파인지
     contSince: 0,       // 연속파를 켜거나 진동수를 바꾼 시각
     t: 0,
-    drive: null,        // { kind: "pulse", t0 } · { kind: "cont", on, env, phase, s } · { kind: "drag" | "return", y }
+    drive: null,        // { kind: "pulse", t0, A } · { kind: "cont", on, env, phase, s, a } · { kind: "drag" | "return", y }
     dragTarget: 0,
   };
   const savedF = { 1: 1.0, 2: 1.0, 3: 1.0 };   // 진동수는 탭마다 따로 기억한다
+  const savedA = { T: AMP.T, L: AMP.L, 2: AMP.T, 3: AMP.T };   // 진폭은 탭 1의 횡파·종파, 탭 2, 탭 3이 따로
+  const ampKey = () => (state.tab === 1 ? state.mode : state.tab);
+  const curAmp = () => savedA[ampKey()];
+  let pulseA = AMP.T;                // 재기 문턱의 기준 — 마지막으로 보낸 펄스의 진폭
 
   let canvas = null;
   let lastG = null;
@@ -120,9 +127,8 @@
      --------------------------------------------------------- */
   // 연속파 진폭 — 종파는 진동수가 크면 파장이 짧아져 같은 진폭에도 공끼리 겹치므로 줄인다
   function contAmp() {
-    if (state.tab !== 1) return AMP_FEED;
-    if (state.mode === "T") return AMP.T;
-    return Math.min(AMP.L, (STRAIN_MAX * SPEED.L) / (2 * Math.PI * state.f));
+    if (state.mode === "T") return curAmp();
+    return Math.min(curAmp(), (STRAIN_MAX * SPEED.L) / (2 * Math.PI * state.f));
   }
 
   // 연속파 한 걸음. 진폭을 한 주기에 걸쳐 올리고 내린다 — 갑자기 시작하거나 멈추면 날카로운 꺾임이 생긴다.
@@ -136,7 +142,8 @@
       updateContBtn();
       return null;
     }
-    return contAmp() * d.env * Math.sin(d.phase);
+    d.a += clamp(contAmp() - d.a, -AMP_SLEW * DT, AMP_SLEW * DT);
+    return d.a * d.env * Math.sin(d.phase);
   }
 
   // 손잡이 마디의 위치. 손이 놓여 있으면 null (그때는 반사 없는 끝이 된다)
@@ -151,7 +158,7 @@
         state.drive = null;
         return 0;
       }
-      return AMP[state.mode] * Math.sin(Math.PI * s) ** 2;
+      return d.A * Math.sin(Math.PI * s) ** 2;
     }
     if (d.kind === "cont") {
       const s = contStep(d);
@@ -270,7 +277,7 @@
   }
 
   // 탭 2·3은 작은 반사도 잡아야 해서 문턱을 낮춘다
-  const probeThr = () => (state.tab === 1 ? 0.15 : 0.02) * AMP[state.mode];
+  const probeThr = () => (state.tab === 1 ? 0.15 : 0.02) * pulseA;
 
   function runProbe(p, thr) {
     const val = y[p.i];
@@ -577,7 +584,7 @@
     ctx.restore();
   }
 
-  const rulerY = (g) => g.chainY + DRAG_MAX.T * g.ppm + 32;
+  const rulerY = (g) => g.chainY + (state.tab === 2 ? 0.62 : DRAG_MAX.T) * g.ppm + 32;
 
   function drawRuler(ctx, g, yr) {
     ctx.save();
@@ -842,7 +849,7 @@
   function drawLambda(ctx, g, lam) {
     if (!lam || !lam.pair) return;
     const [a, b] = lam.pair;
-    const A = AMP[state.mode];
+    const A = contAmp();
     const yy = state.mode === "T" ? g.chainY - A * g.ppm - 24 : g.graphMid - A * g.gScale - 20;
     const x1 = g.X(a.x);
     const x2 = g.X(b.x);
@@ -927,7 +934,7 @@
     const { w, h, ctx } = SimUtils.fitCanvas(cv);
     ctx.clearRect(0, 0, w, h);
     const mid = Math.round(h / 2) + 0.5;
-    const amp = (h * 0.42) / (AMP[state.mode] * 1.2);
+    const amp = (h * 0.42) / (ampMax() * 1.2);
     ctx.strokeStyle = COLOR_AXIS;
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -1221,6 +1228,7 @@
     state.tab = n;
     configure();
     setF(savedF[n]);
+    syncAmp();
     document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("is-active", Number(b.dataset.tab) === n));
     document.querySelectorAll(".ctrl-pane").forEach((p) => p.classList.toggle("hidden", Number(p.dataset.pane) !== n));
     syncSegs();
@@ -1238,6 +1246,7 @@
     if (mode === state.mode) return;
     state.mode = mode;
     configure();
+    syncAmp();
     syncSegs();
     updateStatus();
     toast(mode === "T" ? "횡파 — 진동 방향이 진행 방향에 수직" : "종파 — 진동 방향이 진행 방향과 나란");
@@ -1276,14 +1285,15 @@
   function sendPulse() {
     if (state.drive) return;
     setupProbes();
-    state.drive = { kind: "pulse", t0: state.t };
+    pulseA = curAmp();
+    state.drive = { kind: "pulse", t0: state.t, A: pulseA };
     state.cards = "pulse";
     if (state.paused) togglePause();
   }
 
   function startCont() {
     setupProbes();
-    state.drive = { kind: "cont", on: true, env: 0, phase: 0, s: 0 };
+    state.drive = { kind: "cont", on: true, env: 0, phase: 0, s: 0, a: contAmp() };
     state.cards = "cont";
     state.contSince = state.t;
     if (state.paused) togglePause();
@@ -1324,6 +1334,21 @@
     savedF[state.tab] = f;
     document.querySelectorAll(".f-input").forEach((el) => { el.max = max; el.value = f; });
     document.querySelectorAll(".f-num").forEach((el) => { el.max = max; el.value = f.toFixed(1); });
+  }
+
+  function syncAmp() {
+    const max = ampMax();
+    savedA[ampKey()] = clamp(curAmp(), AMP_MIN, max);
+    const a = curAmp();
+    document.querySelectorAll(".a-input").forEach((el) => { el.max = max; el.value = a; });
+    document.querySelectorAll(".a-num").forEach((el) => { el.max = max; el.value = a.toFixed(2); });
+  }
+
+  function setAmp(v) {
+    const a = Math.round(clamp(Number(v) || AMP_MIN, AMP_MIN, ampMax()) * 100) / 100;
+    if (a !== curAmp() && feed()) state.contSince = state.t;   // 진폭이 바뀌면 새 파동이 자리 잡을 때까지 값을 다시 기다린다
+    savedA[ampKey()] = a;
+    syncAmp();
   }
 
   function togglePause() {
@@ -1376,6 +1401,7 @@
       e.preventDefault();
       try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 포인터가 이미 사라졌으면 잡지 않고 진행 */ }
       setupProbes();
+      pulseA = AMP[state.mode];
       state.drive = { kind: "drag", y: y[I0] };
       state.cards = "pulse";
       state.dragTarget = dragValue(e);
@@ -1432,6 +1458,8 @@
     document.querySelectorAll("#modeSeg button").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
     document.querySelectorAll("#endSeg button").forEach((b) => b.addEventListener("click", () => setEnd(b.dataset.end)));
     document.querySelectorAll("#orderSeg button").forEach((b) => b.addEventListener("click", () => setOrder(b.dataset.order)));
+    document.querySelectorAll(".a-input").forEach((el) => el.addEventListener("input", (e) => setAmp(e.target.value)));
+    document.querySelectorAll(".a-num").forEach((el) => el.addEventListener("change", (e) => setAmp(e.target.value)));
     document.querySelectorAll(".f-input").forEach((el) => el.addEventListener("input", (e) => setF(e.target.value)));
     document.querySelectorAll(".f-num").forEach((el) => el.addEventListener("change", (e) => setF(e.target.value)));
     $("thickInput").addEventListener("input", (e) => setThick(e.target.value));
@@ -1463,6 +1491,7 @@
     setF(state.f);
     setThick(state.thick);
     bind();
+    syncAmp();
     configure();
     syncSegs();
     updateStatus();

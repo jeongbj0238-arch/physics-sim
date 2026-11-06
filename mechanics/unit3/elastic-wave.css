@@ -215,7 +215,7 @@ body[data-page="elastic-wave"] .badge {
 .dock {
   flex: 0 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 384px minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -298,6 +298,10 @@ body[data-page="elastic-wave"] .badge {
 
 .ctrl-row { display: flex; align-items: center; gap: 6px; }
 .ctrl-row .seg { margin-right: auto; }
+.ctrl-row .btn, .seg button { white-space: nowrap; }
+/* 탭 3은 순서 고르기와 두 버튼이 한 줄이다 */
+[data-pane="3"] .seg button { padding: 7px 6px; }
+body[data-page="elastic-wave"] [data-pane="3"] .btn { padding: 7px 10px; }
 
 .param-row { display: flex; align-items: center; gap: 10px; }
 .param-row label { flex: 0 0 auto; min-width: 44px; font-size: 13.5px; font-weight: 600; }
